@@ -1,9 +1,9 @@
-{
-  "school"; {
-    "name"; "City School",
-    "address"; "Vehari, Pakistan"
-  };
-  "classes"; [
+const schooldb = {
+  "school": {
+    "name": "City School",
+    "address": "Vehari, Pakistan"
+  },
+  "classes": [
     {
       "class_id": 1,
       "class_name": "Grade 1",
@@ -175,7 +175,7 @@
       ]
     }
   ],
-  "students"; [
+  "students": [
     {
       "student_id": 1,
       "name": "Ali Mirza",
@@ -906,7 +906,7 @@
       ]
     }
   ],
-  "teachers"; [
+  "teachers": [
     {
       "teacher_id": 1,
       "name": "Ms. Fatima 1",
@@ -1094,7 +1094,7 @@
       ]
     }
   ],
-  "employees"; [
+  "employees": [
     {
       "employee_id": 1,
       "name": "Waqar 1",
@@ -1196,7 +1196,7 @@
       "role": "Librarian"
     }
   ],
-  "attendance"; [
+  "attendance": [
     {
       "date": "2025-09-22",
       "students": [
@@ -3243,4 +3243,6 @@
       ]
     }
   ]
-}
+};
+
+export default schooldb;

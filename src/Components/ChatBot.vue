@@ -1,90 +1,157 @@
 <template>
-  <div>
-    <h1>Chat Bot</h1>
-    <input v-model="chatting" placeholder="Type message" @keyup.enter="sendMessage" />
-    <button @click="sendMessage">Send</button>
-  </div>
+  <div class="chatbot-container">
+    <h2>🎓 School Chat Bot</h2>
 
-  <div v-for="(msg, index) in chatHistory" :key="index" class="chat-line">
-    <p><strong>You:</strong> {{ msg.question }}</p>
-    <p><strong>AI:</strong> {{ msg.answer }}</p>
-    <hr>
+    <div class="chat-window">
+      <div v-for="(msg, index) in messages" :key="index" :class="msg.sender">
+        <p>{{ msg.text }}</p>
+      </div>
+    </div>
+
+    <input
+      v-model="userInput"
+      placeholder="Type your question..."
+      @keyup.enter="handleUserInput"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import OpenAI from 'openai'
-import { schoolTools } from '@/utils/schoolTools.js'
+import SchoolTools from '../SchoolTools.js'
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-})
+// Reactive variables
+const userInput = ref('')
+const messages = ref([
+  { sender: 'bot', text: 'Hello! I am your school chatbot. Ask me anything 🙂' }
+])
 
-const chatting = ref('')
-const reply   = ref('')
-const chatHistory = ref([])
+// Default responses
+const defaultReplies = [
+  "Sorry, I didn’t quite get that. Could you please rephrase?",
+  "Hmm, that question seems unclear. Can you explain it a bit more?",
+  "I’m not sure I understood. Try asking in a different way?",
+  "That doesn’t sound familiar. Could you give me more details?",
+  "Can you make that a little clearer, please?"
+]
 
-function sendMessage() {
-  if (!chatting.value) return
+// Track the last response to avoid repetition
+let lastResponseIndex = -1
 
-  const info = schoolTools.getStudentInfoByName(chatting.value)
-  console.log('Student Info:', info)
+function handleUserInput() {
+  const question = userInput.value.trim()
+  if (!question) return
 
-  if (info) {
-    chatHistory.value.push({
-      question: chatting.value,
-      answer: JSON.stringify(info)
-    })
-    chatting.value = ''
-    return
+  // Show user's message
+  messages.value.push({ sender: 'user', text: question })
+
+  // Get chatbot's answer
+  const answer = getAnswer(question)
+  messages.value.push({ sender: 'bot', text: answer })
+
+  // Clear input
+  userInput.value = ''
+}
+
+function getAnswer(text) {
+  const lower = text.toLowerCase()
+
+  // 1️⃣ School Info
+  if (lower.includes('school') && lower.includes('name')) {
+    const schoolName = SchoolTools.getSchoolInfo().name
+    return `The school name is: ${schoolName}`
   }
-  
-  const contextMessages = chatHistory.value
-    .slice(-15)
-    .flatMap(m => [
-      { role: 'user', content: m.question },
-      { role: 'assistant', content: m.answer }
-    ])
 
-  openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      ...contextMessages,
-      { role: 'user', content: chatting.value }
-    ]
-  })
-  .then(res => {
-    reply.value = res.choices?.[0]?.message?.content || 'No reply'
-    chatHistory.value.push({
-      question: chatting.value,
-      answer: reply.value
-    })
-    chatting.value = ''
-  })
-  .catch(err => {
-    reply.value = 'Error: ' + err.message
-    console.error(err)
-  })
+  // 2️⃣ Student Info
+  if (lower.includes('student') || lower.includes('which class') || lower.includes('class of')) {
+    const name = extractName(lower)
+    if (name) {
+      const student = SchoolTools.getStudentByName(name)
+      if (student) {
+        const cls = SchoolTools.getClassById(student.class_id)
+        return `${student.name} is in ${cls.class_name}.`
+      }
+      return `I couldn’t find any student named ${name}.`
+    }
+  }
+
+  // 3️⃣ Teacher Info
+  if (lower.includes('teacher') || lower.includes('sir') || lower.includes('madam')) {
+    const name = extractName(lower)
+    if (name) {
+      const teacher = SchoolTools.getTeacherByName(name)
+      if (teacher) {
+        return `${teacher.name} teaches ${teacher.subjects_taught.length} subjects.`
+      }
+      return `I couldn’t find any teacher named ${name}.`
+    }
+  }
+
+  // 4️⃣ Attendance Info
+  if (lower.includes('attendance')) {
+    const name = extractName(lower)
+    const student = SchoolTools.getStudentByName(name)
+    if (student) {
+      const att = SchoolTools.getStudentAttendance(student.student_id)
+      const last = att[att.length - 1]
+      return `${student.name}'s last attendance on ${last.date} was: ${last.status}.`
+    }
+  }
+
+  // 5️⃣ Default response (if nothing matches)
+  return getDefaultResponse()
+}
+
+// Random default response function
+function getDefaultResponse() {
+  let index
+  do {
+    index = Math.floor(Math.random() * defaultReplies.length)
+  } while (index === lastResponseIndex)
+  lastResponseIndex = index
+  return defaultReplies[index]
+}
+
+// Simple name extractor (for demo)
+function extractName(text) {
+  const words = text.split(' ')
+  const names = ['ali', 'ahmad', 'ayesha', 'fatima', 'bilal', 'usman', 'sara']
+  return words.find(w => names.includes(w))
 }
 </script>
 
-<style>
-.chat-line {
-  margin-bottom: 20px;
+<style scoped>
+.chatbot-container {
+  width: 400px;
+  margin: 20px auto;
+  padding: 15px;
+  background: #1e1e2e;
+  color: white;
+  border-radius: 10px;
 }
-hr {
-  border: 0;
-  height: 1px;
-  background: #ccc;
-}
-input {
+
+.chat-window {
+  height: 300px;
+  overflow-y: auto;
+  background: #2a2a3a;
   padding: 10px;
-  width: 300px;
-  margin-right: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
 }
-button {
-  padding: 10px 20px;
+
+.user {
+  text-align: right;
+}
+
+.bot {
+  text-align: left;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  outline: none;
 }
 </style>

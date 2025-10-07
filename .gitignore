@@ -26,7 +26,12 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+<<<<<<< HEAD
 .env
 
 *.tsbuildinfo
 ".env" 
+=======
+
+*.tsbuildinfo
+>>>>>>> 4ccbb9b (SchoolTools.js - add func)
